@@ -1,4 +1,39 @@
+# Основной стиль
 BasedOnStyle: Google
-IndentWidth: 4
-ColumnLimit: 120
-BreakBeforeBraces: Allman
+Language: Cpp
+
+# Общие настройки
+Standard: Latest
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 200
+
+# Скобки
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+
+# Отступы и выравнивание
+AlignConsecutiveDeclarations: false
+AlignConsecutiveAssignments: false
+AlignAfterOpenBracket: Align
+AlignTrailingComments: true
+
+# Пробелы
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInCStyleCastParentheses: false
+SpacesInAngles: Never
+
+# Переносы
+BinPackArguments: true
+BinPackParameters: true
+AllowAllParametersOfDeclarationOnNextLine: false
+BreakConstructorInitializers: BeforeColon
+PenaltyBreakBeforeFirstCallParameter: 1
+
+# Прочее
+SortIncludes: CaseSensitive
+FixNamespaceComments: true
+IncludeBlocks: Preserve
