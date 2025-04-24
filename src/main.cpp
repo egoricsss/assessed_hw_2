@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
+constexpr std::string END_OF_THE_EDGES_MARKER = "   -1";
+
 class Graph {
  private:
   std::size_t curSCC;
@@ -16,7 +18,7 @@ class Graph {
   void clear_stack() { L = std::stack<std::size_t>(); }
 
   template <typename PreVisit, typename PostVisit>
-  void visit(int v, std::vector<bool>& visited, PreVisit&& pre_visit, PostVisit&& post_visit) {
+  void visit(std::size_t v, std::vector<bool>& visited, PreVisit&& pre_visit, PostVisit&& post_visit) {
     visited[v] = true;
     pre_visit(v);
     for (const auto& neighbor : adj[v]) {
@@ -70,8 +72,6 @@ class Graph {
 
   std::size_t get_size() { return adj.size(); }
 
-  std::stack<std::size_t>& get_L() { return L; }
-
   void print() const {
     for (std::size_t v = 0; v < adj.size(); ++v) {
       std::cout << v;
@@ -81,7 +81,7 @@ class Graph {
           std::cout << u << ' ';
         }
       }
-      std::cout << "   -1" << std::endl;
+      std::cout << END_OF_THE_EDGES_MARKER << std::endl;
     }
   }
 
@@ -119,7 +119,7 @@ class Graph {
     std::vector<std::vector<std::size_t>> reverse_adj(adj.size());
     std::vector<std::size_t> in_degree(adj.size(), 0);
     for (const auto& neighbors : adj) {
-      for (int v : neighbors) {
+      for (std::size_t v : neighbors) {
         in_degree[v]++;
       }
     }
