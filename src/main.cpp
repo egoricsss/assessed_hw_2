@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <stack>
@@ -6,86 +7,116 @@
 #include <unordered_set>
 #include <vector>
 
-constexpr std::string END_OF_THE_EDGES_MARKER = "   -1";
+// Константа для обозначения конца списка рёбер при выводе
+constexpr std::string kEndOfEdgesMarker = "   -1";
 
+/**
+ * Класс для представления ориентированного графа и работы с ним.
+ * Поддерживает операции поиска сильно связных компонент (SCC),
+ * построения обратного графа и метаграфа.
+ */
 class Graph {
  private:
-  std::size_t curSCC;
-  std::vector<std::vector<std::size_t>> adj;
-  std::stack<std::size_t> L;
-  std::vector<std::size_t> numSCC;
+  size_t current_scc_count_;                    // Текущее количество SCC
+  std::vector<std::vector<size_t>> adjacency_;  // Список смежности
+  std::stack<size_t> processing_order_;         // Порядок обработки вершин
+  std::vector<size_t> vertex_component_ids_;    // ID компонент для вершин
 
-  void clear_stack() { L = std::stack<std::size_t>(); }
+  /// Очищает стек порядка обработки
+  void ClearProcessingStack() { processing_order_ = std::stack<size_t>(); }
 
+  /**
+   * Рекурсивный обход в глубину с обработкой перед и после посещения вершины.
+   * @param vertex Текущая вершина
+   * @param visited Массив посещённых вершин
+   * @param pre_visit Действие перед посещением вершины
+   * @param post_visit Действие после посещения вершины
+   */
   template <typename PreVisit, typename PostVisit>
-  void visit(std::size_t v, std::vector<bool>& visited, PreVisit&& pre_visit, PostVisit&& post_visit) {
-    visited[v] = true;
-    pre_visit(v);
-    for (const auto& neighbor : adj[v]) {
+  void DepthFirstVisit(size_t vertex, std::vector<bool>& visited, PreVisit&& pre_visit, PostVisit&& post_visit) {
+    visited[vertex] = true;
+    pre_visit(vertex);
+    for (auto neighbor : adjacency_[vertex]) {
       if (!visited[neighbor]) {
-        visit(neighbor, visited, pre_visit, post_visit);
+        DepthFirstVisit(neighbor, visited, pre_visit, post_visit);
       }
     }
-    post_visit(v);
+    post_visit(vertex);
   }
 
+  /**
+   * Обход графа в глубину с возможностью кастомизации обработки вершин.
+   * @param pre_visit Действие перед посещением вершины
+   * @param post_visit Действие после посещения вершины
+   */
   template <typename PreVisit, typename PostVisit>
-  void DFS(PreVisit&& pre_visit, PostVisit&& post_visit) {
-    std::vector<bool> visited(adj.size(), false);
-    for (std::size_t v = 0; v < adj.size(); ++v) {
-      if (!visited[v]) visit(v, visited, pre_visit, post_visit);
+  void TraverseGraph(PreVisit&& pre_visit, PostVisit&& post_visit) {
+    std::vector<bool> visited(adjacency_.size(), false);
+    for (size_t v = 0; v < adjacency_.size(); ++v) {
+      if (!visited[v]) {
+        DepthFirstVisit(v, visited, pre_visit, post_visit);
+      }
     }
   }
 
-  void DFS(std::stack<std::size_t>& order_stack) {
-    std::vector<bool> visited(adj.size(), false);
-    numSCC = std::vector<std::size_t>(adj.size());
-    curSCC = 0;
+  /**
+   * Обход графа для разметки компонент сильной связности.
+   * @param order_stack Стек с порядком обработки вершин
+   */
+  void MarkComponents(std::stack<size_t>& order_stack) {
+    std::vector<bool> visited(adjacency_.size(), false);
+    vertex_component_ids_.resize(adjacency_.size());
+    current_scc_count_ = 0;
+
     while (!order_stack.empty()) {
-      std::size_t v = order_stack.top();
-      if (!visited[v]) {
-        visit(v, visited, [this](auto v) { this->numSCC[v] = this->curSCC; }, [](auto) {});
-        ++curSCC;
+      auto vertex = order_stack.top();
+      if (!visited[vertex]) {
+        DepthFirstVisit(vertex, visited, [this](auto v) { this->vertex_component_ids_[v] = this->current_scc_count_; }, [](auto) {});
+        ++current_scc_count_;
       }
       order_stack.pop();
     }
   }
 
-  static int parse_int(const char*& ptr) {
+  /// Парсит целое число из строки
+  static int ParseInt(const char** ptr) {
     int sign = 1;
     int value = 0;
-    while (*ptr && std::isspace(*ptr)) ++ptr;
-    if (*ptr == '-') {
+    while (**ptr && std::isspace(**ptr)) ++(*ptr);
+    if (**ptr == '-') {
       sign = -1;
-      ++ptr;
+      ++(*ptr);
     }
-    while (*ptr >= '0' && *ptr <= '9') {
-      value = value * 10 + (*ptr - '0');
-      ++ptr;
+    while (**ptr >= '0' && **ptr <= '9') {
+      value = value * 10 + (**ptr - '0');
+      ++(*ptr);
     }
     return sign * value;
   }
 
  public:
   Graph() = default;
-  Graph(std::vector<std::vector<std::size_t>>&& adjancency_list) : adj(std::move(adjancency_list)) {}
+  explicit Graph(std::vector<std::vector<size_t>>&& adjacency) : adjacency_(std::move(adjacency)) {}
 
-  std::size_t get_size() { return adj.size(); }
+  /// Возвращает количество вершин в графе
+  size_t GetVertexCount() const { return adjacency_.size(); }
 
-  void print() const {
-    for (std::size_t v = 0; v < adj.size(); ++v) {
+  /// Выводит граф в стандартный поток вывода
+  void Print() const {
+    for (size_t v = 0; v < adjacency_.size(); ++v) {
       std::cout << v;
-      if (!adj[v].empty()) {
+      if (!adjacency_[v].empty()) {
         std::cout << "   ";
-        for (auto&& u : adj[v]) {
+        for (auto u : adjacency_[v]) {
           std::cout << u << ' ';
         }
       }
-      std::cout << END_OF_THE_EDGES_MARKER << std::endl;
+      std::cout << kEndOfEdgesMarker << '\n';
     }
   }
 
-  static Graph read_from_stdin() noexcept {
+  /// Читает граф из стандартного потока ввода
+  static Graph ReadFromStdin() noexcept {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     std::string buffer;
@@ -101,13 +132,13 @@ class Graph {
 
     const char* ptr = buffer.data();
     const char* end = buffer.data() + buffer.size();
-    int n = parse_int(ptr);
+    int n = ParseInt(&ptr);
     std::vector<std::vector<std::size_t>> adj(n);
     for (int i = 0; i < n; ++i) {
-      int v = parse_int(ptr);
+      int v = ParseInt(&ptr);
       adj[v].reserve(8);
       while (ptr < end) {
-        int u = parse_int(ptr);
+        int u = ParseInt(&ptr);
         if (u == -1) break;
         adj[v].push_back(u);
       }
@@ -115,68 +146,88 @@ class Graph {
     return Graph(std::move(adj));
   }
 
-  Graph reverse() const noexcept {
-    std::vector<std::vector<std::size_t>> reverse_adj(adj.size());
-    std::vector<std::size_t> in_degree(adj.size(), 0);
-    for (const auto& neighbors : adj) {
-      for (std::size_t v : neighbors) {
-        in_degree[v]++;
+  /// Строит обратный граф (с инвертированными рёбрами)
+  Graph Reverse() const {
+    std::vector<std::vector<size_t>> reversed(adjacency_.size());
+
+    // Предварительный расчёт входящих степеней для оптимизации
+    std::vector<size_t> in_degree(adjacency_.size(), 0);
+    for (const auto& neighbors : adjacency_) {
+      for (auto v : neighbors) ++in_degree[v];
+    }
+    for (size_t v = 0; v < reversed.size(); ++v) {
+      reversed[v].reserve(in_degree[v]);
+    }
+
+    // Заполнение обратного графа
+    for (size_t u = 0; u < adjacency_.size(); ++u) {
+      for (auto v : adjacency_[u]) {
+        reversed[v].push_back(u);
       }
     }
-    for (std::size_t v = 0; v < adj.size(); ++v) {
-      reverse_adj[v].reserve(in_degree[v]);
-    }
-    for (std::size_t u = 0; u < adj.size(); ++u) {
-      for (const auto& v : adj[u]) {
-        reverse_adj[v].push_back(u);
-      }
-    }
-    return Graph(std::move(reverse_adj));
+
+    return Graph(std::move(reversed));
   }
 
-  std::vector<std::size_t>& find_scc() {
-    Graph transported_graph = this->reverse();
-    this->clear_stack();
-    transported_graph.DFS([](auto) {}, [this](auto v) { this->L.push(v); });
-    DFS(L);
-    return numSCC;
+  /// Находит все сильно связные компоненты (возвращает массив component_id для вершин)
+  std::vector<size_t> FindStronglyConnectedComponents() {
+    auto reversed_graph = this->Reverse();
+    ClearProcessingStack();
+
+    // Первый обход для определения порядка обработки
+    reversed_graph.TraverseGraph([](auto) {}, [this](auto v) { this->processing_order_.push(v); });
+
+    // Второй обход для разметки компонент
+    MarkComponents(processing_order_);
+
+    return vertex_component_ids_;
   }
 
-  Graph build_meta_graph() {
-    std::unordered_map<int, std::unordered_set<int>> meta_adj;
-    for (std::size_t u = 0; u < adj.size(); ++u) {
-      int u_comp = numSCC[u];
-      for (auto&& v : adj[u]) {
-        int v_comp = numSCC[v];
+  /// Строит метаграф на основе компонент сильной связности
+  Graph BuildMetaGraph() const {
+    std::unordered_map<size_t, std::unordered_set<size_t>> meta_edges;
+
+    for (size_t u = 0; u < adjacency_.size(); ++u) {
+      auto u_comp = vertex_component_ids_[u];
+      for (auto v : adjacency_[u]) {
+        auto v_comp = vertex_component_ids_[v];
         if (u_comp != v_comp) {
-          meta_adj[u_comp].insert(v_comp);
+          meta_edges[u_comp].insert(v_comp);
         }
       }
     }
-    std::vector<std::vector<std::size_t>> meta_adj_list(curSCC);
-    for (auto&& [comp, neighbors] : meta_adj) {
-      meta_adj_list[comp].assign(neighbors.begin(), neighbors.end());
+
+    // Преобразование в список смежности
+    std::vector<std::vector<size_t>> meta_adj(current_scc_count_);
+    for (const auto& [comp, neighbors] : meta_edges) {
+      meta_adj[comp].assign(neighbors.begin(), neighbors.end());
     }
-    return Graph(std::move(meta_adj_list));
+
+    return Graph(std::move(meta_adj));
   }
 };
 
 int main() {
-  Graph g = Graph::read_from_stdin();
-  auto& scc = g.find_scc();
-  std::unordered_map<int, std::vector<std::size_t>> components;
-  for (std::size_t v = 0; v < scc.size(); ++v) {
-    components[scc[v]].push_back(v);
+  auto graph = Graph::ReadFromStdin();
+  auto components = graph.FindStronglyConnectedComponents();
+
+  // Группировка вершин по компонентам
+  std::unordered_map<size_t, std::vector<size_t>> component_map;
+  for (size_t v = 0; v < components.size(); ++v) {
+    component_map[components[v]].push_back(v);
   }
-  for (auto&& [comp, nodes] : components) {
-    std::cout << "SCC " << comp << ":   ";
-    for (auto&& node : nodes) {
-      std::cout << node << " ";
-    }
-    std::cout << std::endl;
+
+  // Вывод компонент
+  for (const auto& [comp_id, vertices] : component_map) {
+    std::cout << "SCC " << comp_id << ": ";
+    for (auto v : vertices) std::cout << v << " ";
+    std::cout << "\n";
   }
-  Graph meta = g.build_meta_graph();
-  std::cout << "Meta-graph:\n";
-  meta.print();
+
+  // Построение и вывод метаграфа
+  auto meta_graph = graph.BuildMetaGraph();
+  std::cout << "\nMeta-graph structure:\n";
+  meta_graph.Print();
+
   return EXIT_SUCCESS;
 }
