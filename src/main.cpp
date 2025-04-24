@@ -74,11 +74,14 @@ class Graph {
 
   void print() const {
     for (std::size_t v = 0; v < adj.size(); ++v) {
-      std::cout << v << ": ";
-      for (auto&& u : adj[v]) {
-        std::cout << u << " ";
+      std::cout << v;
+      if (!adj[v].empty()) {
+        std::cout << "   ";
+        for (auto&& u : adj[v]) {
+          std::cout << u << ' ';
+        }
       }
-      std::cout << "-1" << std::endl;
+      std::cout << "   -1" << std::endl;
     }
   }
 
@@ -99,7 +102,7 @@ class Graph {
     const char* ptr = buffer.data();
     const char* end = buffer.data() + buffer.size();
     int n = parse_int(ptr);
-    std::vector<std::vector<size_t>> adj(n);
+    std::vector<std::vector<std::size_t>> adj(n);
     for (int i = 0; i < n; ++i) {
       int v = parse_int(ptr);
       adj[v].reserve(8);
@@ -120,10 +123,10 @@ class Graph {
         in_degree[v]++;
       }
     }
-    for (size_t v = 0; v < adj.size(); ++v) {
+    for (std::size_t v = 0; v < adj.size(); ++v) {
       reverse_adj[v].reserve(in_degree[v]);
     }
-    for (size_t u = 0; u < adj.size(); ++u) {
+    for (std::size_t u = 0; u < adj.size(); ++u) {
       for (const auto& v : adj[u]) {
         reverse_adj[v].push_back(u);
       }
@@ -166,7 +169,7 @@ int main() {
     components[scc[v]].push_back(v);
   }
   for (auto&& [comp, nodes] : components) {
-    std::cout << "SCC " << comp << ": ";
+    std::cout << "SCC " << comp << ":   ";
     for (auto&& node : nodes) {
       std::cout << node << " ";
     }
