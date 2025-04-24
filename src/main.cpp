@@ -98,9 +98,6 @@ class Graph {
   Graph() = default;
   explicit Graph(std::vector<std::vector<size_t>>&& adjacency) : adjacency_(std::move(adjacency)) {}
 
-  /// Возвращает количество вершин в графе
-  size_t GetVertexCount() const { return adjacency_.size(); }
-
   /// Выводит граф в стандартный поток вывода
   void Print() const {
     for (size_t v = 0; v < adjacency_.size(); ++v) {
