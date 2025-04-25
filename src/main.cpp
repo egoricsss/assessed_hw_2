@@ -223,7 +223,7 @@ int main() {
 
   // Построение и вывод метаграфа
   auto meta_graph = graph.BuildMetaGraph();
-  std::cout << "\nMeta-graph structure:\n";
+  std::cout << "Meta-graph:\n";
   meta_graph.Print();
 
   return EXIT_SUCCESS;
